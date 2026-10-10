@@ -1,0 +1,805 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Letter SMK Negeri 1 Sarudik</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #f2f518;
+      --primary-dark: #f2f518;
+      --bg-gradient: linear-gradient(135deg, #e0f2f1 0%, #b2dfdb 100%);
+    }
+    body {
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-x: hidden;
+    }
+    /* Glassmorphism Styles */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+    }
+    /* Sidebar Layout */
+    #sidebar {
+      width: 260px;
+      min-height: 100vh;
+      background: #ffffff;
+      border-right: 1px solid rgba(0,0,0,0.1);
+      position: fixed;
+      transition: all 0.3s;
+      z-index: 1000;
+      white-space: nowrap;
+    }
+    #main-content {
+      margin-left: 260px;
+      padding: 24px;
+      transition: all 0.3s;
+    }
+    .nav-link {
+      color: #333;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin: 4px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+    .nav-link:hover, .nav-link.active {
+      background-color: var(--primary-color);
+      color: white !important;
+    }
+    /* PDF Preview & Form layout Container */
+    .preview-container {
+      overflow-x: auto;
+      background: #525659;
+      padding: 20px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: center;
+    }
+    .a4-preview {
+      width: 210mm;
+      height: 297mm;
+      min-width: 210mm;
+      background: white;
+      padding: 20mm;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      position: relative;
+      box-sizing: border-box;
+      color: #000;
+    }
+    /* Mobile Configuration */
+    @media (max-width: 992px) {
+      #sidebar {
+        transform: translateX(-100%);
+      }
+      #sidebar.show-mobile {
+        transform: translateX(0);
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      }
+      #main-content {
+        margin-left: 0;
+      }
+      .backdrop {
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.4);
+        z-index: 999;
+        display: none;
+      }
+      .backdrop.show { display: block; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebarBackdrop" class="backdrop" onclick="toggleSidebar()"></div>
+
+  <div id="auth-container" class="d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="card glass-card p-4 mx-3" style="width: 100%; max-width: 400px;">
+      <div class="text-center mb-4">
+        <i class="bi bi-folder-fill display-4 text-success"></i>
+        <h4 class="mt-2 fw-bold" style="color: var(--primary-color)">E-Letter SMK Negeri 1 Sarudik</h4>
+        <small class="text-muted">Sistem Manajemen e-Letter Digital</small>
+      </div>
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+            <input type="email" id="loginEmail" class="form-string form-control" required value="admin@mail.com">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input type="password" id="loginPassword" class="form-string form-control" required value="admin123">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success w-100 py-2" style="background-color: var(--primary-color)">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Masuk Aplikasi
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="app-container" class="d-none">
+    <div id="sidebar">
+      <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+        <span class="fw-bold fs-5 text-success"><i class="bi bi-folder2-open me-2"></i>E-Letter</span>
+        <button class="btn d-lg-none" onclick="toggleSidebar()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="py-2">
+        <a href="#" class="nav-link active" data-view="dashboard" onclick="switchView('dashboard')"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="#" class="nav-link" data-view="surat-masuk" onclick="switchView('surat-masuk')"><i class="bi bi-download"></i> Surat Masuk</a>
+        <a href="#" class="nav-link" data-view="surat-keluar" onclick="switchView('surat-keluar')"><i class="bi bi-upload"></i> Surat Keluar</a>
+        <a href="#" class="nav-link" data-view="disposisi" onclick="switchView('disposisi')"><i class="bi bi-arrow-right-square"></i> Disposisi</a>
+        <a href="#" class="nav-link" data-view="cetak-template" onclick="switchView('cetak-template')"><i class="bi bi-printer"></i> Cetak Dokumen</a>
+        <a href="#" class="nav-link" data-view="cetak-laporan" onclick="switchView('cetak-laporan')"><i class="bi bi-file-earmark-bar-graph"></i> Cetak Laporan</a>
+        <a href="#" class="nav-link" data-view="pengaturan" onclick="switchView('pengaturan')"><i class="bi bi-gear"></i> Pengaturan</a>
+        <hr class="mx-3 my-2">
+        <a href="#" class="nav-link text-danger" onclick="handleLogout()"><i class="bi bi-box-arrow-left"></i> Keluar</a>
+      </div>
+    </div>
+
+    <div id="main-content">
+      <div class="d-flex d-lg-none justify-content-between align-items-center mb-4 glass-card p-3">
+        <button class="btn btn-success" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+        <h5 class="m-0 fw-bold text-success">E-Letter SMK Negeri 1 Sarudik</h5>
+        <div></div>
+      </div>
+
+      <div id="view-dashboard" class="app-view">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4"><div class="card glass-card p-4 text-center"><h5>Surat Masuk</h5><h2 id="count-masuk" class="fw-bold text-success">0</h2></div></div>
+          <div class="col-md-4"><div class="card glass-card p-4 text-center"><h5>Surat Keluar</h5><h2 id="count-keluar" class="fw-bold text-primary">0</h2></div></div>
+          <div class="col-md-4"><div class="card glass-card p-4 text-center"><h5>Disposisi</h5><h2 id="count-disposisi" class="fw-bold text-warning">0</h2></div></div>
+        </div>
+        <div class="card glass-card p-4"><canvas id="dashboardChart" style="max-height: 350px;"></canvas></div>
+      </div>
+
+      <div id="view-surat-masuk" class="app-view d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="fw-bold text-dark">Data Surat Masuk</h4>
+          <button class="btn btn-success" onclick="openCrudModal('SuratMasuk')"><i class="bi bi-plus-lg me-2"></i>Tambah Surat Masuk</button>
+        </div>
+        <div class="card glass-card p-3 table-responsive"><table class="table table-hover align-middle" id="tableSuratMasuk"><thead></thead><tbody></tbody></table></div>
+      </div>
+
+      <div id="view-surat-keluar" class="app-view d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="fw-bold text-dark">Data Surat Keluar</h4>
+          <button class="btn btn-success" onclick="openCrudModal('SuratKeluar')"><i class="bi bi-plus-lg me-2"></i>Tambah Surat Keluar</button>
+        </div>
+        <div class="card glass-card p-3 table-responsive"><table class="table table-hover align-middle" id="tableSuratKeluar"><thead></thead><tbody></tbody></table></div>
+      </div>
+
+      <div id="view-disposisi" class="app-view d-none">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="fw-bold text-dark">Data Disposisi</h4>
+          <button class="btn btn-success" onclick="openCrudModal('Disposisi')"><i class="bi bi-plus-lg me-2"></i>Tambah Disposisi</button>
+        </div>
+        <div class="card glass-card p-3 table-responsive"><table class="table table-hover align-middle" id="tableDisposisi"><thead></thead><tbody></tbody></table></div>
+      </div>
+
+      <div id="view-cetak-template" class="app-view d-none">
+        <div class="row g-4">
+          <div class="col-xl-4">
+            <div class="card glass-card p-4">
+              <h5 class="fw-bold mb-3">Form Cetak Dokumen</h5>
+              <div class="mb-3"><label class="form-label">No. Surat</label><input type="text" id="p-no-surat" class="form-control" oninput="liveRenderTemplate()" value="001/A/2026"></div>
+              <div class="mb-3"><label class="form-label">Nama Tujuan</label><input type="text" id="p-tujuan" class="form-control" oninput="liveRenderTemplate()" value="Yth. Pengawas Sekolah"></div>
+              <div class="mb-3"><label class="form-label">Isi Surat Resmi</label><textarea id="p-isi" class="form-control" rows="8" oninput="liveRenderTemplate()">Dengan hormat, sehubungan dengan pelaksanaan digitalisasi manajemen berkas, kami mengundang bapak/ibu untuk dapat menghadiri rapat koordinasi instansi.</textarea></div>
+              <button class="btn btn-primary w-100 py-2" onclick="printTemplatePDF()"><i class="bi bi-file-earmark-pdf me-2"></i>Export Ke PDF (Portrait)</button>
+            </div>
+          </div>
+          <div class="col-xl-8">
+            <div class="preview-container">
+              <div id="portrait-printout" class="a4-preview">
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-cetak-laporan" class="app-view d-none">
+        <div class="card glass-card p-4 mb-4">
+          <h5 class="fw-bold mb-3">Cetak Laporan Rekapitulasi</h5>
+          <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+              <label class="form-label">Pilih Data Master</label>
+              <select id="laporan-source" class="form-select">
+                <option value="SuratMasuk">Data Surat Masuk</option>
+                <option value="SuratKeluar">Data Surat Keluar</option>
+                <option value="Disposisi">Data Disposisi</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <button class="btn btn-success me-2" onclick="loadLaporanData()"><i class="bi bi-eye me-1"></i> Preview</button>
+              <button class="btn btn-primary" onclick="printLaporanPDF()"><i class="bi bi-printer me-1"></i> Cetak Landscape</button>
+            </div>
+          </div>
+        </div>
+        <div class="preview-container overflow-auto" style="max-height: 600px;">
+          <div id="landscape-printout" style="width: 297mm; background: #fff; padding: 20mm; box-sizing: border-box; color: #000;">
+             </div>
+        </div>
+      </div>
+
+      <div id="view-pengaturan" class="app-view d-none">
+        <div class="card glass-card p-4 mx-auto" style="max-width: 700px;">
+          <h4 class="fw-bold mb-4 text-success"><i class="bi bi-sliders me-2"></i>Pengaturan Aplikasi / Instansi</h4>
+          <form id="settingForm" onsubmit="saveSettings(event)">
+            <input type="hidden" id="set-id">
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">Pemerintah</label><input type="text" id="set-pem" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Nama Dinas</label><input type="text" id="set-din" class="form-control" required></div>
+              <div class="col-md-12"><label class="form-label">Nama Sekolah / Instansi</label><input type="text" id="set-sek" class="form-control" required></div>
+              <div class="col-md-12"><label class="form-label">Alamat Lengkap</label><input type="text" id="set-alm" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label">Logo Kiri URL</label><input type="url" id="set-lkir" class="form-control" placeholder="https://..."></div>
+              <div class="col-md-6"><label class="form-label">Logo Kanan URL</label><input type="url" id="set-lkan" class="form-control" placeholder="https://..."></div>
+              <div class="col-md-4"><label class="form-label">Tempat TTD</label><input type="text" id="set-ttd" class="form-control" required></div>
+              <div class="col-md-4"><label class="form-label">Nama Kepala</label><input type="text" id="set-nkep" class="form-control" required></div>
+              <div class="col-md-4"><label class="form-label">NIP Kepala</label><input type="text" id="set-nkip" class="form-control" required></div>
+            </div>
+            <button type="submit" class="btn btn-success mt-4 px-4 py-2"><i class="bi bi-save me-2"></i>Simpan Perubahan</button>
+          </form>
+        </div>
+      </div>
+
+      <footer class="mt-5 text-center text-muted py-3 border-top">
+        <p>&copy; 2026 E-Letter SMK Negeri 1 Sarudik. Dikembangkan oleh <a href="https://github.com" id="author-link" target="_blank" class="text-decoration-none fw-bold text-success">Bambang.J.L</a>. All Rights Reserved.</p>
+      </footer>
+    </div>
+  </div>
+
+  <div class="modal fade" id="universalModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header text-white" style="background-color: var(--primary-color);">
+          <h5 class="modal-title" id="modalTitle">Form Entri Data</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="universalForm" onsubmit="handleUniversalSave(event)">
+          <div class="modal-body" id="modalBodyInputs">
+            </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-success" style="background-color: var(--primary-color);">Simpan Data</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <script>
+    // System Configurations Global States
+    let currentSheetTarget = "";
+    let systemChartInstance = null;
+
+    const SCHEMA_CONFIGURATIONS = {
+      SuratMasuk: [
+        { name: 'id', label: 'ID', type: 'hidden' },
+        { name: 'no_surat', label: 'Nomor Surat', type: 'text', required: true },
+        { name: 'pengirim', label: 'Nama Pengirim', type: 'text', required: true },
+        { name: 'perihal', label: 'Perihal / Hal', type: 'text', required: true },
+        { name: 'tanggal_surat', label: 'Tanggal Surat', type: 'date', required: true },
+        { name: 'tanggal_diterima', label: 'Tanggal Diterima', type: 'date', required: true },
+        { name: 'klasifikasi', label: 'Klasifikasi', type: 'select', options: ['Biasa', 'Penting', 'Rahasia', 'Sangat Rahasia'], required: true },
+        { name: 'prioritas', label: 'Tingkat Prioritas', type: 'select', options: ['Rendah', 'Sedang', 'Tinggi'], required: true },
+        { name: 'status', label: 'Status Proses', type: 'select', options: ['Diterima', 'Diproses', 'Diarsipkan'], required: true },
+        { name: 'file_link', label: 'URL Berkas Pendukung (Cloud)', type: 'url' }
+      ],
+      SuratKeluar: [
+        { name: 'id', label: 'ID', type: 'hidden' },
+        { name: 'no_surat', label: 'Nomor Surat', type: 'text', required: true },
+        { name: 'penerima', label: 'Nama Penerima', type: 'text', required: true },
+        { name: 'perihal', label: 'Perihal Konten', type: 'text', required: true },
+        { name: 'tanggal', label: 'Tanggal Pengiriman', type: 'date', required: true },
+        { name: 'status', label: 'Status Pengiriman', type: 'select', options: ['Konsep', 'Terkirim', 'Tertunda'], required: true },
+        { name: 'file_link', label: 'URL Salinan File', type: 'url' }
+      ],
+      Disposisi: [
+        { name: 'id', label: 'ID', type: 'hidden' },
+        { name: 'surat_id', label: 'ID Surat Terkait', type: 'number', required: true },
+        { name: 'dari', label: 'Disposisi Dari', type: 'text', required: true },
+        { name: 'kepada', label: 'Diteruskan Kepada', type: 'text', required: true },
+        { name: 'instruksi', label: 'Instruksi Pimpinan', type: 'text', required: true },
+        { name: 'batas_waktu', label: 'Batas Waktu Penyelesaian', type: 'date', required: true },
+        { name: 'status', label: 'Status Tindak Lanjut', type: 'select', options: ['Belum Diproses', 'Sedang Diproses', 'Selesai'], required: true }
+      ]
+    };
+
+    // 4. KEAMANAN COPYRIGHT & SYSTEM BOOTSTRAP
+    document.addEventListener("DOMContentLoaded", function() {
+      const lockLink = document.getElementById("author-link");
+      if (!lockLink || lockLink.innerText.trim() !== "Bambang.J.L" || lockLink.getAttribute("href") === "") {
+        executeSystemLockdown();
+        return;
+      }
+      
+      // Deteksi manipulasi DOM secara manual
+      setInterval(() => {
+        const testLink = document.getElementById("author-link");
+        if (!testLink || testLink.innerText.trim() !== "Bambang.J.L") {
+          executeSystemLockdown();
+        }
+      }, 3000);
+
+      // Cek Session Cache Storage
+      if(localStorage.getItem("user_session")) {
+        activateApplicationView();
+      }
+    });
+
+    function executeSystemLockdown() {
+      document.body.innerHTML = `
+        <div class="d-flex flex-column align-items-center justify-content-center bg-dark text-white" style="height: 100vh; padding:20px; text-align:center;">
+          <i class="bi bi-shield-slash-fill display-1 text-danger mb-4"></i>
+          <h1 class="fw-bold">Security Violation / System Locked</h1>
+          <p class="lead">Lisensi dan Hak Cipta Elemen Footer Pengembang ('Bambang.J.L') Telah Dimodifikasi Secara Ilegal.</p>
+          <small class="text-muted">Hubungi administrator sistem untuk memulihkan akses legal perangkat lunak.</small>
+        </div>`;
+      throw new Error("Sistem Dihentikan Otomatis: Pelanggaran Hak Cipta.");
+    }
+
+    // AUTHENTICATION ENGINE
+    function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById("loginEmail").value;
+      const pass = document.getElementById("loginPassword").value;
+      
+      showLoading("Memverifikasi Kredensial...");
+      
+      google.script.run
+        .withSuccessHandler(res => {
+          Swal.close();
+          if(res.success) {
+            localStorage.setItem("user_session", JSON.stringify(res.user));
+            localStorage.setItem("app_settings", JSON.stringify(res.settings));
+            notifySuccess("Selamat Datang kembali, " + res.user.nama);
+            activateApplicationView();
+          } else {
+            notifyError(res.message);
+          }
+        })
+        .withFailureHandler(err => { Swal.close(); notifyError(err.toString()); })
+        .loginAuth(email, pass);
+    }
+
+    function handleLogout() {
+      localStorage.clear();
+      document.getElementById("app-container").classList.add("d-none");
+      document.getElementById("auth-container").classList.remove("d-none");
+    }
+
+    function activateApplicationView() {
+      document.getElementById("auth-container").classList.add("d-none");
+      document.getElementById("app-container").classList.remove("d-none");
+      loadSystemSettingsToForm();
+      switchView('dashboard');
+    }
+
+    // UI & VIEW CONTROLLER
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      const backdrop = document.getElementById("sidebarBackdrop");
+      sidebar.classList.toggle("show-mobile");
+      backdrop.classList.toggle("show");
+    }
+
+    function switchView(viewId) {
+      document.querySelectorAll(".app-view").forEach(v => v.classList.add("d-none"));
+      document.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active"));
+      
+      const targetView = document.getElementById("view-" + viewId);
+      if(targetView) targetView.classList.remove("d-none");
+      
+      const activeLink = document.querySelector(`[data-view="${viewId}"]`);
+      if(activeLink) activeLink.classList.add("active");
+
+      // Tutup otomatis offcanvas mobile jika terbuka saat menu diklik
+      document.getElementById("sidebar").classList.remove("show-mobile");
+      document.getElementById("sidebarBackdrop").classList.remove("show");
+
+      if(viewId === 'dashboard') loadDashboardMetrics();
+      if(['surat-masuk', 'surat-keluar', 'disposisi'].includes(viewId)) {
+        const sheetsMapping = { 'surat-masuk': 'SuratMasuk', 'surat-keluar': 'SuratKeluar', 'disposisi': 'Disposisi' };
+        fetchTableDataset(sheetsMapping[viewId]);
+      }
+      if(viewId === 'cetak-template') liveRenderTemplate();
+    }
+
+    // DATA LOADING CORE ENGINE
+    function fetchTableDataset(sheetName) {
+      showLoading("Memuat Data dari Database...");
+      google.script.run
+        .withSuccessHandler(data => {
+          Swal.close();
+          renderDataGrid(sheetName, data);
+        })
+        .withFailureHandler(err => { Swal.close(); notifyError(err.toString()); })
+        .getTableData(sheetName);
+    }
+
+    function renderDataGrid(sheetName, dataset) {
+      const table = document.getElementById("table" + sheetName);
+      const thead = table.querySelector("thead");
+      const tbody = table.querySelector("tbody");
+      
+      thead.innerHTML = "";
+      tbody.innerHTML = "";
+
+      const schema = SCHEMA_CONFIGURATIONS[sheetName];
+      
+      // Render Header Row
+      let headerHtml = "<tr>";
+      schema.filter(s => s.type !== 'hidden').forEach(s => headerHtml += `<th>${s.label}</th>`);
+      headerHtml += "<th class='text-center'>Aksi / Tindakan</th></tr>";
+      thead.innerHTML = headerHtml;
+
+      // Render Rows
+      if(dataset.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${schema.length + 1}" class="text-center text-muted py-4">Tidak ada arsip data yang tersimpan.</td></tr>`;
+        return;
+      }
+
+      dataset.forEach(row => {
+        let rowHtml = "<tr>";
+        schema.filter(s => s.type !== 'hidden').forEach(s => {
+          let cellValue = row[s.name] || "-";
+          if (s.type === 'url' && cellValue !== "-") {
+            rowHtml += `<td><a href="${cellValue}" target="_blank" class="btn btn-sm btn-link"><i class="bi bi-link-45deg"></i> Lihat Berkas</a></td>`;
+          } else {
+            rowHtml += `<td>${cellValue}</td>`;
+          }
+        });
+        
+        const stringifiedRow = btoa(unescape(encodeURIComponent(JSON.stringify(row))));
+        rowHtml += `
+          <td class="text-center">
+            <button class="btn btn-sm btn-warning me-1" onclick="openCrudModal('${sheetName}', '${stringifiedRow}')"><i class="bi bi-pencil-square"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="confirmDeleteRow('${sheetName}', ${row.id})"><i class="bi bi-trash"></i></button>
+          </td></tr>`;
+        tbody.innerHTML += rowHtml;
+      });
+    }
+
+    // DYNAMIC CRUD MODAL SYSTEM
+    function openCrudModal(sheetName, encodedRowData = null) {
+      currentSheetTarget = sheetName;
+      const body = document.getElementById("modalBodyInputs");
+      body.innerHTML = "";
+      
+      document.getElementById("modalTitle").innerText = (encodedRowData ? "Ubah Entry " : "Tambah Entry ") + sheetName;
+      const schema = SCHEMA_CONFIGURATIONS[sheetName];
+      
+      let rowData = {};
+      if(encodedRowData) {
+        rowData = JSON.parse(decodeURIComponent(escape(atob(encodedRowData))));
+      }
+
+      schema.forEach(field => {
+        const currentVal = rowData[field.name] !== undefined ? rowData[field.name] : "";
+        
+        if(field.type === 'hidden') {
+          body.innerHTML += `<input type="hidden" id="form-${field.name}" value="${currentVal}">`;
+        } else {
+          let inputBlock = `<div class="mb-3"><label class="form-label fw-semibold">${field.label}${field.required ? ' <span class="text-danger">*</span>':''}</label>`;
+          
+          if(field.type === 'select') {
+            inputBlock += `<select id="form-${field.name}" class="form-select" ${field.required?'required':''}>`;
+            field.options.forEach(opt => {
+              inputBlock += `<option value="${opt}" ${opt==currentVal?'selected':''}>${opt}</option>`;
+            });
+            inputBlock += `</select>`;
+          } else {
+            inputBlock += `<input type="${field.type}" id="form-${field.name}" class="form-control" value="${currentVal}" ${field.required?'required':''}>`;
+          }
+          inputBlock += `</div>`;
+          body.innerHTML += inputBlock;
+        }
+      });
+
+      const modalEl = new bootstrap.Modal(document.getElementById('universalModal'));
+      modalEl.show();
+    }
+
+    function handleUniversalSave(e) {
+      e.preventDefault();
+      const schema = SCHEMA_CONFIGURATIONS[currentSheetTarget];
+      let payload = {};
+
+      schema.forEach(field => {
+        payload[field.name] = document.getElementById("form-" + field.name).value;
+      });
+
+      bootstrap.Modal.getInstance(document.getElementById('universalModal')).hide();
+      showLoading("Sedang Menyimpan Berkas Ke Database...");
+
+      google.script.run
+        .withSuccessHandler(res => {
+          Swal.close();
+          notifySuccess("Data Berhasil Disimpan!");
+          fetchTableDataset(currentSheetTarget);
+        })
+        .withFailureHandler(err => { Swal.close(); notifyError(err.toString()); })
+        .saveDataUniversal(currentSheetTarget, payload);
+    }
+
+    function confirmDeleteRow(sheetName, id) {
+      Swal.fire({
+        title: "Konfirmasi Penghapusan",
+        text: "Apakah Anda yakin ingin menghapus data dengan ID: " + id + "? Data yang terhapus tidak dapat dikembalikan.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Ya, Hapus Data!"
+      }).then((result) => {
+        if (result.isConfirmed) {
+          showLoading("Sedang Menghapus Data...");
+          google.script.run
+            .withSuccessHandler(res => {
+              Swal.close();
+              if(res.success) {
+                notifySuccess("Data Terhapus Dari Database.");
+                fetchTableDataset(sheetName);
+              } else {
+                notifyError(res.message);
+              }
+            })
+            .withFailureHandler(err => { Swal.close(); notifyError(err.toString()); })
+            .deleteRow(sheetName, id);
+        }
+      });
+    }
+
+    // DASHBOARD METRICS & GRAPH ENGINE
+    function loadDashboardMetrics() {
+      google.script.run.withSuccessHandler(resM => {
+        const countMasuk = resM.filter(r => r.id).length;
+        document.getElementById("count-masuk").innerText = countMasuk;
+        
+        google.script.run.withSuccessHandler(resK => {
+          const countKeluar = resK.filter(r => r.id).length;
+          document.getElementById("count-keluar").innerText = countKeluar;
+          
+          google.script.run.withSuccessHandler(resD => {
+            const countDisposisi = resD.filter(r => r.id).length;
+            document.getElementById("count-disposisi").innerText = countDisposisi;
+            
+            renderChartVisualization(countMasuk, countKeluar, countDisposisi);
+          }).getTableData("Disposisi");
+        }).getTableData("SuratKeluar");
+      }).getTableData("SuratMasuk");
+    }
+
+    function renderChartVisualization(masuk, keluar, disposisi) {
+      const ctx = document.getElementById('dashboardChart').getContext('2d');
+      if(systemChartInstance) systemChartInstance.destroy();
+      
+      systemChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Surat Masuk', 'Surat Keluar', 'Disposisi'],
+          datasets: [{
+            label: 'Volume Berkas / Arsip',
+            data: [masuk, keluar, disposisi],
+            backgroundColor: ['#1f8a70', '#0d6efd', '#ffc107'],
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // SETTINGS MANAGER
+    function loadSystemSettingsToForm() {
+      const settings = JSON.parse(localStorage.getItem("app_settings")) || {};
+      document.getElementById("set-id").value = settings.id || "";
+      document.getElementById("set-pem").value = settings.pemerintah || "";
+      document.getElementById("set-din").value = settings.dinas || "";
+      document.getElementById("set-sek").value = settings.sekolah || "";
+      document.getElementById("set-alm").value = settings.alamat || "";
+      document.getElementById("set-lkir").value = settings.logo_kiri || "";
+      document.getElementById("set-lkan").value = settings.logo_kanan || "";
+      document.getElementById("set-ttd").value = settings.tempat_ttd || "";
+      document.getElementById("set-nkep").value = settings.nama_kepsek || "";
+      document.getElementById("set-nkip").value = settings.nip_kepsek || "";
+    }
+
+    function saveSettings(e) {
+      e.preventDefault();
+      showLoading("Memproses & Menyimpan Pengaturan Konfigurasi...");
+      
+      const payload = {
+        id: document.getElementById("set-id").value,
+        pemerintah: document.getElementById("set-pem").value,
+        dinas: document.getElementById("set-din").value,
+        sekolah: document.getElementById("set-sek").value,
+        alamat: document.getElementById("set-alm").value,
+        logo_kiri: document.getElementById("set-lkir").value,
+        logo_kanan: document.getElementById("set-lkan").value,
+        tempat_ttd: document.getElementById("set-ttd").value,
+        nama_kepsek: document.getElementById("set-nkep").value,
+        nip_kepsek: document.getElementById("set-nkip").value,
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          Swal.close();
+          localStorage.setItem("app_settings", JSON.stringify(res.data));
+          notifySuccess("Konfigurasi Aplikasi Berhasil Diperbarui!");
+        })
+        .withFailureHandler(err => { Swal.close(); notifyError(err.toString()); })
+        .saveDataUniversal("PengaturanApp", payload);
+    }
+
+    // 5. ATURAN KETAT CETAK PDF (html2pdf.js) - PORTRAIT TEMPLATE
+    function generateCommonHeaderHTML(settings) {
+      // Desain KOP Surat Terbuka Wajib Menggunakan Elemen Table 3 Kolom Sesuai Aturan Ketat
+      const leftLogoHtml = settings.logo_kiri ? `<img src="${settings.logo_kiri}" style="max-height:80px; max-width:80px; object-fit:contain;">` : '';
+      const rightLogoHtml = settings.logo_kanan ? `<img src="${settings.logo_kanan}" style="max-height:80px; max-width:80px; object-fit:contain;">` : '';
+      
+      return `
+        <table style="width:100%; border-collapse:collapse; margin-bottom:15px; border-bottom:3px double #000;">
+          <tr>
+            <td style="width:15%; text-align:center; padding-bottom:10px;">${leftLogoHtml}</td>
+            <td style="width:70%; text-align:center; padding-bottom:10px; font-family:'Times New Roman', Times, serif;">
+              <h5 style="margin:0; font-size:14px; text-transform:uppercase; font-weight:bold;">${settings.pemerintah}</h5>
+              <h4 style="margin:2px 0; font-size:16px; text-transform:uppercase; font-weight:bold;">${settings.dinas}</h4>
+              <h3 style="margin:2px 0; font-size:18px; text-transform:uppercase; font-weight:bold;">${settings.sekolah}</h3>
+              <small style="margin:0; font-size:11px; font-style:italic; display:block;">${settings.alamat}</small>
+            </td>
+            <td style="width:15%; text-align:center; padding-bottom:10px;">${rightLogoHtml}</td>
+          </tr>
+        </table>`;
+    }
+
+    function liveRenderTemplate() {
+      const settings = JSON.parse(localStorage.getItem("app_settings")) || {};
+      const noSurat = document.getElementById("p-no-surat").value;
+      const tujuan = document.getElementById("p-tujuan").value;
+      const isi = document.getElementById("p-isi").value;
+      
+      const container = document.getElementById("portrait-printout");
+      
+      // Ambil tanggal hari ini format lokal indonesia
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      const tanggalHariIni = new Date().toLocaleDateString('id-ID', options);
+
+      container.innerHTML = `
+        ${generateCommonHeaderHTML(settings)}
+        <div style="font-family:'Times New Roman', Times, serif; font-size:12pt; line-height:1.5;">
+          <table style="width:100%; margin-bottom:20px;">
+            <tr><td style="width:15%">Nomor</td><td>: ${noSurat}</td></tr>
+            <tr><td>Sifat</td><td>: Penting / Segera</td></tr>
+            <tr><td>Hal</td><td>: Undangan Dinas Kedinasan Resmi</td></tr>
+          </table>
+          
+          <div style="margin-bottom:30px;">
+            <p style="margin:0;">${tujuan}</p>
+            <p style="margin:0;">Di Tempat</p>
+          </div>
+          
+          <p style="text-indent: 40px; text-align:justify; margin-bottom:40px;">${isi}</p>
+          
+          <div style="position: absolute; bottom: 30mm; right: 20mm; width: 70mm; font-family:'Times New Roman', Times, serif; font-size:12pt;">
+            <p style="margin:0;">${settings.tempat_ttd}, ${tanggalHariIni}</p>
+            <p style="margin:0; margin-bottom:65px;">Kepala Instansi,</p>
+            <p style="margin:0; font-weight:bold; text-decoration:underline;">${settings.nama_kepsek}</p>
+            <p style="margin:0;">NIP. ${settings.nip_kepsek}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function printTemplatePDF() {
+      const element = document.getElementById('portrait-printout');
+      const noSurat = document.getElementById("p-no-surat").value.replace(/[^a-zA-Z0-9]/g, "_");
+      const opt = {
+        margin:       0,
+        filename:     `Surat_${noSurat}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    // LANDSCAPE REPORT ENGINE
+    function loadLaporanData() {
+      const source = document.getElementById("laporan-source").value;
+      showLoading("Menyusun Struktur Tabel Laporan...");
+      
+      google.script.run
+        .withSuccessHandler(data => {
+          Swal.close();
+          renderLandscapeStructure(source, data);
+        })
+        .withFailureHandler(err => { Swal.close(); notifyError(err.toString()); })
+        .getTableData(source);
+    }
+
+    function renderLandscapeStructure(source, dataset) {
+      const settings = JSON.parse(localStorage.getItem("app_settings")) || {};
+      const container = document.getElementById("landscape-printout");
+      const schema = SCHEMA_CONFIGURATIONS[source];
+      
+      let tableHeaderCols = "";
+      schema.forEach(s => tableHeaderCols += `<th style="border:1px solid #000; padding:8px; background:#f2f2f2; font-size:11px;">${s.label}</th>`);
+
+      let tableRows = "";
+      if(dataset.length === 0) {
+        tableRows = `<tr><td colspan="${schema.length}" style="border:1px solid #000; padding:12px; text-align:center; color:#666;">Tidak ada arsip rekaman data.</td></tr>`;
+      } else {
+        dataset.forEach(row => {
+          tableRows += "<tr>";
+          schema.forEach(s => {
+            tableRows += `<td style="border:1px solid #000; padding:6px; font-size:11px;">${row[s.name] || "-"}</td>`;
+          });
+          tableRows += "</tr>";
+        });
+      }
+
+      container.innerHTML = `
+        ${generateCommonHeaderHTML(settings)}
+        <div style="text-center; margin-bottom:15px; font-family:'Times New Roman', Times, serif; text-align:center;">
+          <h5 style="margin:0; text-transform:uppercase; font-weight:bold;">LAPORAN REKAPITULASI DATA ${source.toUpperCase()}</h5>
+        </div>
+        <table style="width:100%; border-collapse:collapse; font-family:Arial, sans-serif;">
+          <thead><tr>${tableHeaderCols}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      `;
+    }
+
+    function printLaporanPDF() {
+      const element = document.getElementById('landscape-printout');
+      const source = document.getElementById("laporan-source").value;
+      if(!element.innerHTML.trim()){
+        notifyError("Klik tombol Preview terlebih dahulu sebelum mencetak!");
+        return;
+      }
+      const opt = {
+        margin:       10,
+        filename:     `Laporan_Rekap_${source}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    // UTILITIES NOTIFICATION POPUP ALERTS
+    function showLoading(msg) {
+      Swal.fire({ title: msg, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+    }
+    function notifySuccess(msg) {
+      Swal.fire({ icon: 'success', title: 'Sukses', text: msg, timer: 2000, showConfirmButton: false });
+    }
+    function notifyError(msg) {
+      Swal.fire({ icon: 'error', title: 'Terjadi Kesalahan', text: msg });
+    }
+  </script>
+</body>
+</html>
